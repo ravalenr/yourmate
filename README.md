@@ -19,16 +19,41 @@ in task rotations while away.
 
 ## Status
 
-This project is in active MVP development. See
-[docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) for the full functional and
-non-functional requirements this build is scoped against.
+This project is in active MVP development.
+
+- [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) — what the MVP does, and what's
+  deliberately out of scope.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — database schema, API endpoints,
+  screen flow, and build order.
 
 ## Tech Stack
 
-- **App**: React Native + Expo
-- **Backend**: Node.js + Express
+- **App**: React Native + Expo, TypeScript, React Navigation
+- **Backend**: Node.js + Express, TypeScript, raw SQL via `pg`
 - **Database**: PostgreSQL
+- **Auth**: JWT bearer tokens with bcrypt-hashed passwords
 
 ## Getting Started
 
-Setup instructions will be added here once the app and backend scaffolding exist.
+**Prerequisites:** Node.js 22+ and a running PostgreSQL server.
+
+```bash
+cd server
+npm install
+cp .env.example .env    # then fill in DATABASE_URL and JWT_SECRET
+npm run db:setup        # creates the database and applies all migrations
+npm run dev             # API on http://localhost:3000
+```
+
+### Commands
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Start the API, reloading on file changes |
+| `npm test` | Run the test suite |
+| `npm run typecheck` | Check types without emitting anything |
+| `npm run migrate` | Apply any migrations that haven't run yet |
+| `npm run db:create` | Create the database named in `DATABASE_URL` |
+| `npm run build` | Compile TypeScript to `dist/` |
+
+The mobile app isn't scaffolded yet — it'll live in `app/`.
