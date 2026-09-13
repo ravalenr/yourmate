@@ -16,6 +16,7 @@ import { currentUserId } from '../middleware/auth';
 import { requireMembership } from '../services/membership';
 import { nextDeadline } from '../services/recurrence';
 import { nextAssignee, type RotationMember } from '../services/rotation';
+import { displayNameOf, notifyHousehold } from '../services/notify';
 
 /** Mounted at /environments/:environmentId/tasks */
 export const environmentTaskRoutes = Router({ mergeParams: true });
@@ -141,6 +142,14 @@ environmentTaskRoutes.post('/', async (req: Request<EnvironmentParams>, res) => 
     ],
   );
 
+  await notifyHousehold({
+    environmentId,
+    actorId: userId,
+    type: 'task_created',
+    detail: `added "${shortDescription}"`,
+    taskId: task.id,
+  });
+
   res.status(201).json({ task: toTask(task) });
 });
 
@@ -206,6 +215,20 @@ taskRoutes.patch('/:id', async (req, res) => {
     [...columns.map((column) => updates[column]), taskId],
   );
 
+  // Only a change of hands is worth telling the household about; edits to wording
+  // or dates would just be noise in the feed.
+  if (updated.assigned_user_id !== task.assigned_user_id) {
+    await notifyHousehold({
+      environmentId: task.environment_id,
+      actorId: userId,
+      type: 'task_reassigned',
+      detail: updated.assigned_user_id
+        ? `assigned "${updated.short_description}" to ${await displayNameOf(updated.assigned_user_id)}`
+        : `put "${updated.short_description}" up for anyone to take`,
+      taskId: task.id,
+    });
+  }
+
   res.json({ task: toTask(updated) });
 });
 
@@ -232,6 +255,14 @@ taskRoutes.post('/:id/complete', async (req, res) => {
        WHERE id = $2 RETURNING ${TASK_COLUMNS}`,
       [userId, taskId],
     );
+    await notifyHousehold({
+      environmentId: task.environment_id,
+      actorId: userId,
+      type: 'task_completed',
+      detail: `completed "${task.short_description}"`,
+      taskId: task.id,
+    });
+
     res.json({ task: toTask(finished) });
     return;
   }
@@ -258,6 +289,14 @@ taskRoutes.post('/:id/complete', async (req, res) => {
     [deadline, assignedUserId, covering, userId, taskId],
   );
 
+  await notifyHousehold({
+    environmentId: task.environment_id,
+    actorId: userId,
+    type: 'task_completed',
+    detail: `completed "${task.short_description}"`,
+    taskId: task.id,
+  });
+
   res.json({ task: toTask(updated) });
 });
 
@@ -276,6 +315,14 @@ taskRoutes.post('/:id/claim', async (req, res) => {
      WHERE id = $2 RETURNING ${TASK_COLUMNS}`,
     [userId, taskId],
   );
+
+  await notifyHousehold({
+    environmentId: task.environment_id,
+    actorId: userId,
+    type: 'task_claimed',
+    detail: `took on "${task.short_description}"`,
+    taskId: task.id,
+  });
 
   res.json({ task: toTask(claimed) });
 });

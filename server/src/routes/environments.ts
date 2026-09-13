@@ -11,6 +11,7 @@ import {
 } from '../lib/serializers';
 import { currentUserId } from '../middleware/auth';
 import { requireMembership, requireOwner, type Role } from '../services/membership';
+import { displayNameOf, notifyHousehold } from '../services/notify';
 
 export const environmentRoutes = Router();
 
@@ -116,6 +117,13 @@ environmentRoutes.post('/join', async (req, res) => {
     `INSERT INTO memberships (user_id, environment_id, role) VALUES ($1, $2, 'member')`,
     [userId, environment.id],
   );
+
+  await notifyHousehold({
+    environmentId: environment.id,
+    actorId: userId,
+    type: 'member_joined',
+    detail: 'joined the household',
+  });
 
   res.status(201).json({ environment: await fetchEnvironment(userId, environment.id) });
 });
@@ -238,6 +246,17 @@ environmentRoutes.delete('/:id/members/:userId', async (req, res) => {
       environmentId,
       targetUserId,
     ]);
+  });
+
+  // Sent after the membership is gone, so the person who left doesn't receive a
+  // notification about their own departure.
+  await notifyHousehold({
+    environmentId,
+    actorId: callerId,
+    type: 'member_left',
+    detail: isLeaving
+      ? 'left the household'
+      : `removed ${await displayNameOf(targetUserId)} from the household`,
   });
 
   res.status(204).end();

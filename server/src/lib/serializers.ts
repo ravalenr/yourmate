@@ -1,3 +1,4 @@
+import type { NotificationType } from './notificationTypes';
 import type { AssignmentType, Frequency, TaskStatus } from './taskTypes';
 
 /**
@@ -109,6 +110,33 @@ export const TASK_COLUMNS = `
   status, completed_at, completed_by, created_by, created_at,
   assigned_while_covering
 `;
+
+export type NotificationRow = {
+  id: string;
+  environment_id: string;
+  actor_id: string | null;
+  task_id: string | null;
+  type: NotificationType;
+  message: string;
+  read_at: Date | null;
+  created_at: Date;
+};
+
+export function toNotification(row: NotificationRow) {
+  return {
+    id: row.id,
+    environmentId: row.environment_id,
+    actorId: row.actor_id,
+    taskId: row.task_id,
+    type: row.type,
+    message: row.message,
+    readAt: row.read_at,
+    createdAt: row.created_at,
+  };
+}
+
+export const NOTIFICATION_COLUMNS =
+  'id, environment_id, actor_id, task_id, type, message, read_at, created_at';
 
 export type EnvironmentRow = {
   id: string;
