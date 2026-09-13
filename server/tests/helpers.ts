@@ -48,8 +48,8 @@ export async function deleteTestData(scope: string) {
 }
 
 /**
- * Holiday mode is set through the profile endpoints, which don't exist yet
- * (build step 11), so tests that need it write to the database directly.
+ * PATCH /me can set holiday mode, but these tests write it directly: the point is
+ * to arrange a state, not to exercise the profile endpoint (profile.test.ts does).
  */
 export async function setHolidayMode(userId: string, on: boolean) {
   await pool.query('UPDATE users SET holiday_mode = $1 WHERE id = $2', [on, userId]);
