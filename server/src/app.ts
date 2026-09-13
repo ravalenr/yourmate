@@ -2,6 +2,7 @@ import express from 'express';
 import { pool, queryRequired } from './db';
 import { authRoutes } from './routes/auth';
 import { environmentRoutes } from './routes/environments';
+import { environmentTaskRoutes, taskRoutes } from './routes/tasks';
 import { currentUserId, requireAuth } from './middleware/auth';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { toPrivateUser, USER_COLUMNS, type UserRow } from './lib/serializers';
@@ -21,7 +22,10 @@ export function createApp() {
   });
 
   app.use('/auth', authRoutes);
+  // Registered before /environments so the more specific path is matched first.
+  app.use('/environments/:environmentId/tasks', requireAuth, environmentTaskRoutes);
   app.use('/environments', requireAuth, environmentRoutes);
+  app.use('/tasks', requireAuth, taskRoutes);
 
   // Temporary: proves the auth middleware works end to end. Moves into
   // routes/profile.ts when the profile endpoints are built.

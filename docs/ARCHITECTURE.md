@@ -465,7 +465,7 @@ A sequence where each step is testable before the next one depends on it:
 2. ✅ **Server skeleton** — Express + `pg` connection + a health-check route.
 3. ✅ **Auth** — signup/login/JWT + the auth middleware.
 4. ✅ **Environments** — create, join, list, members, roles.
-5. **Tasks** — CRUD, then complete/claim with rotation + recurrence.
+5. ✅ **Tasks** — CRUD, then complete/claim with rotation + recurrence.
 6. **Notifications** — event writing and the feed endpoints.
 7. **Cleanup job** — the weekly deletion cron.
 8. **App: auth screens** — login/signup, token storage, the logged-in/out split.

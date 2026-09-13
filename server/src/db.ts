@@ -1,5 +1,11 @@
-import { Pool, type PoolClient, type QueryResultRow } from 'pg';
+import { Pool, types, type PoolClient, type QueryResultRow } from 'pg';
 import { env } from './env';
+
+// By default the pg driver turns a DATE column into a JavaScript Date at local
+// midnight, which silently shifts the day for anyone not on UTC. Deadlines are
+// date-only by design (see ARCHITECTURE.md section 3), so keep them as plain
+// 'YYYY-MM-DD' strings and avoid timezones entirely.
+types.setTypeParser(types.builtins.DATE, (value) => value);
 
 export const pool = new Pool({ connectionString: env.databaseUrl });
 

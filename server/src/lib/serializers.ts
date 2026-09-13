@@ -1,3 +1,5 @@
+import type { AssignmentType, Frequency, TaskStatus } from './taskTypes';
+
 /**
  * Database rows use snake_case; the API speaks camelCase. These functions are the
  * single place that translation happens — and the safety net that stops internal
@@ -62,6 +64,51 @@ export function toMember(row: MemberRow) {
     joinedAt: row.joined_at,
   };
 }
+
+export type TaskRow = {
+  id: string;
+  environment_id: string;
+  short_description: string;
+  long_description: string | null;
+  deadline: string;
+  frequency: Frequency;
+  frequency_interval: number;
+  assignment_type: AssignmentType;
+  assigned_user_id: string | null;
+  status: TaskStatus;
+  completed_at: Date | null;
+  completed_by: string | null;
+  created_by: string | null;
+  created_at: Date;
+  assigned_while_covering: boolean;
+};
+
+export function toTask(row: TaskRow) {
+  return {
+    id: row.id,
+    environmentId: row.environment_id,
+    shortDescription: row.short_description,
+    longDescription: row.long_description,
+    deadline: row.deadline,
+    frequency: row.frequency,
+    frequencyInterval: row.frequency_interval,
+    assignmentType: row.assignment_type,
+    assignedUserId: row.assigned_user_id,
+    status: row.status,
+    completedAt: row.completed_at,
+    completedBy: row.completed_by,
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+    assignedWhileCovering: row.assigned_while_covering,
+  };
+}
+
+export const TASK_COLUMNS = `
+  id, environment_id, short_description, long_description, deadline,
+  frequency, frequency_interval, assignment_type, assigned_user_id,
+  status, completed_at, completed_by, created_by, created_at,
+  assigned_while_covering
+`;
 
 export type EnvironmentRow = {
   id: string;

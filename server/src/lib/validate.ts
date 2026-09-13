@@ -58,6 +58,59 @@ export function optionalBoolean(body: unknown, name: string): boolean | undefine
   return value;
 }
 
+export function requireEnum<T extends string>(
+  body: unknown,
+  name: string,
+  allowed: readonly T[],
+): T {
+  const value = field(body, name);
+  if (typeof value !== 'string' || !allowed.includes(value as T)) {
+    throw badRequest(`${name} must be one of: ${allowed.join(', ')}`);
+  }
+  return value as T;
+}
+
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Accepts a calendar date as 'YYYY-MM-DD'. Deadlines carry no time of day. */
+export function requireDate(body: unknown, name: string): string {
+  const value = field(body, name);
+  if (typeof value !== 'string' || !DATE_PATTERN.test(value)) {
+    throw badRequest(`${name} must be a date in YYYY-MM-DD format`);
+  }
+  // Catches things like 2026-02-31, which matches the pattern but isn't a real day.
+  const [year, month, day] = value.split('-').map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    throw badRequest(`${name} is not a real date`);
+  }
+  return value;
+}
+
+export function optionalPositiveInt(body: unknown, name: string): number | undefined {
+  const value = field(body, name);
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
+    throw badRequest(`${name} must be a whole number of 1 or more`);
+  }
+  return value;
+}
+
+/** Returns undefined when absent, null when explicitly cleared, else a UUID. */
+export function optionalUuid(body: unknown, name: string): string | null | undefined {
+  const value = field(body, name);
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value !== 'string' || !UUID_PATTERN.test(value)) {
+    throw badRequest(`${name} must be a valid id`);
+  }
+  return value;
+}
+
 export function requireEmail(body: unknown, name = 'email'): string {
   const value = requireString(body, name);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
