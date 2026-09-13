@@ -82,7 +82,26 @@ export const post = (path: string, body: unknown, token?: string) =>
 export const patch = (path: string, body: unknown, token?: string) =>
   request('PATCH', path, { body, token });
 
+export const put = (path: string, body: unknown, token?: string) =>
+  request('PUT', path, { body, token });
+
 export const del = (path: string, token?: string) => request('DELETE', path, { token });
+
+/** For endpoints that return something other than JSON, such as an image. */
+export async function getRaw(
+  path: string,
+  token?: string,
+): Promise<{ status: number; contentType: string | null; bytes: number }> {
+  const response = await fetch(baseUrl + path, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  const buffer = await response.arrayBuffer();
+  return {
+    status: response.status,
+    contentType: response.headers.get('content-type'),
+    bytes: buffer.byteLength,
+  };
+}
 
 /** Sends a raw string body, for testing malformed input. */
 export const postRaw = (path: string, rawBody: string) => request('POST', path, { rawBody });

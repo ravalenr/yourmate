@@ -1,12 +1,12 @@
 import express from 'express';
-import { pool, queryRequired } from './db';
+import { pool } from './db';
 import { authRoutes } from './routes/auth';
 import { environmentRoutes } from './routes/environments';
 import { environmentTaskRoutes, taskRoutes } from './routes/tasks';
 import { notificationRoutes } from './routes/notifications';
-import { currentUserId, requireAuth } from './middleware/auth';
+import { profileRoutes } from './routes/profile';
+import { requireAuth } from './middleware/auth';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
-import { toPrivateUser, USER_COLUMNS, type UserRow } from './lib/serializers';
 
 /**
  * Builds the Express app without starting it. Kept separate from index.ts so tests
@@ -28,15 +28,7 @@ export function createApp() {
   app.use('/environments/:environmentId/notifications', requireAuth, notificationRoutes);
   app.use('/environments', requireAuth, environmentRoutes);
   app.use('/tasks', requireAuth, taskRoutes);
-
-  // Temporary: proves the auth middleware works end to end. Moves into
-  // routes/profile.ts when the profile endpoints are built.
-  app.get('/me', requireAuth, async (req, res) => {
-    const user = await queryRequired<UserRow>(`SELECT ${USER_COLUMNS} FROM users WHERE id = $1`, [
-      currentUserId(req),
-    ]);
-    res.json({ user: toPrivateUser(user) });
-  });
+  app.use(profileRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
