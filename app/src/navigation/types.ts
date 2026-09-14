@@ -7,7 +7,11 @@ export type HomeStackParamList = {
   Dashboard: undefined;
   CreateEnvironment: undefined;
   JoinEnvironment: undefined;
+  /** A household's hub: the four blocks you can go to from here. */
   Environment: { environmentId: string; name: string };
+  Tasks: { environmentId: string };
+  Social: { environmentId: string };
+  Holidays: { environmentId: string };
   TaskDetail: { taskId: string; environmentId: string };
   TaskForm: { environmentId: string; taskId?: string };
   Members: { environmentId: string };

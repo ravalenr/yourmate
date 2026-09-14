@@ -9,7 +9,9 @@ import { SignUpScreen } from '../screens/SignUpScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { CreateEnvironmentScreen } from '../screens/CreateEnvironmentScreen';
 import { JoinEnvironmentScreen } from '../screens/JoinEnvironmentScreen';
-import { EnvironmentScreen } from '../screens/EnvironmentScreen';
+import { HubScreen } from '../screens/HubScreen';
+import { TasksScreen } from '../screens/TasksScreen';
+import { ComingSoonScreen } from '../screens/ComingSoonScreen';
 import { TaskDetailScreen } from '../screens/TaskDetailScreen';
 import { TaskFormScreen } from '../screens/TaskFormScreen';
 import { MembersScreen } from '../screens/MembersScreen';
@@ -61,10 +63,21 @@ function HomeFlow() {
         component={JoinEnvironmentScreen}
         options={{ title: 'Join a household' }}
       />
-      <HomeStack.Screen name="Environment" component={EnvironmentScreen} />
+      <HomeStack.Screen name="Environment" component={HubScreen} />
+      <HomeStack.Screen name="Tasks" component={TasksScreen} options={{ title: 'Tasks' }} />
+      <HomeStack.Screen name="Social" component={ComingSoonScreen} options={{ title: 'Social' }} />
+      <HomeStack.Screen
+        name="Holidays"
+        component={ComingSoonScreen}
+        options={{ title: 'Holidays' }}
+      />
       <HomeStack.Screen name="TaskDetail" component={TaskDetailScreen} />
       <HomeStack.Screen name="TaskForm" component={TaskFormScreen} />
-      <HomeStack.Screen name="Members" component={MembersScreen} options={{ title: 'Household' }} />
+      <HomeStack.Screen
+        name="Members"
+        component={MembersScreen}
+        options={{ title: 'Household settings' }}
+      />
       <HomeStack.Screen
         name="Notifications"
         component={NotificationsScreen}

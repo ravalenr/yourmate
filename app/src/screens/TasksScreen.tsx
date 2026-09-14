@@ -1,14 +1,12 @@
-import { useCallback, useLayoutEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { api } from '../api/client';
 import { Button } from '../components/Button';
@@ -20,39 +18,15 @@ import { useTasks } from '../hooks/useTasks';
 import { colors, spacing, typography } from '../theme';
 import type { HomeStackParamList } from '../navigation/types';
 
-type Props = NativeStackScreenProps<HomeStackParamList, 'Environment'>;
+type Props = NativeStackScreenProps<HomeStackParamList, 'Tasks'>;
 
-export function EnvironmentScreen({ route, navigation }: Props) {
-  const { environmentId, name } = route.params;
+export function TasksScreen({ route, navigation }: Props) {
+  const { environmentId } = route.params;
   const { user } = useAuth();
   const { environment, members, refetch: refetchEnvironment } = useEnvironment(environmentId);
   const { tasks, loading, error, refetch } = useTasks(environmentId);
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      title: environment?.name ?? name,
-      headerRight: () => (
-        <View style={styles.headerButtons}>
-          <Pressable
-            onPress={() => navigation.navigate('Notifications', { environmentId })}
-            hitSlop={8}
-            style={styles.headerButton}
-          >
-            <Ionicons name="notifications-outline" size={22} color={colors.text} />
-          </Pressable>
-          <Pressable
-            onPress={() => navigation.navigate('Members', { environmentId })}
-            hitSlop={8}
-            style={styles.headerButton}
-          >
-            <Ionicons name="people-outline" size={22} color={colors.text} />
-          </Pressable>
-        </View>
-      ),
-    });
-  }, [navigation, environment?.name, name, environmentId]);
 
   const handleComplete = useCallback(
     async (taskId: string) => {
@@ -90,7 +64,8 @@ export function EnvironmentScreen({ route, navigation }: Props) {
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>Nothing to do yet</Text>
             <Text style={styles.emptyBody}>
-              Add the first task and it'll show up for everyone in {environment?.name ?? 'the household'}.
+              Add the first task and it'll show up for everyone in{' '}
+              {environment?.name ?? 'the household'}.
             </Text>
           </View>
         ) : (
@@ -127,8 +102,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.background,
   },
-  headerButtons: { flexDirection: 'row' },
-  headerButton: { marginLeft: spacing.lg },
   empty: { paddingTop: spacing.xxl, alignItems: 'center' },
   emptyTitle: { ...typography.heading, marginBottom: spacing.sm },
   emptyBody: {
