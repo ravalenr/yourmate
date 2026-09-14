@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { api } from '../api/client';
-import { Button } from '../components/Button';
+import { Avatar } from '../components/Avatar';
 import { Card } from '../components/Card';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { useAuth } from '../auth/AuthContext';
@@ -14,27 +14,32 @@ import type { HomeStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'Members'>;
 
-export function MembersScreen({ route, navigation }: Props) {
+/**
+ * Light-hearted ways of saying someone is on holiday. Picked from the member's id
+ * rather than at random, so a housemate keeps the same line every time you look
+ * instead of it reshuffling on each refresh.
+ */
+const AWAY_PHRASES = [
+  'is too busy enjoying life',
+  'is off somewhere sunnier',
+  'has gone to touch some grass',
+  'is out of office, emotionally',
+  'is away making memories',
+];
+
+function awayPhraseFor(memberId: string): string {
+  let total = 0;
+  for (let i = 0; i < memberId.length; i++) total += memberId.charCodeAt(i);
+  return AWAY_PHRASES[total % AWAY_PHRASES.length];
+}
+
+export function MembersScreen({ route }: Props) {
   const { environmentId } = route.params;
   const { user } = useAuth();
   const { environment, members, loading, error, refetch } = useEnvironment(environmentId);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
 
   const isOwner = environment?.role === 'owner';
-
-  async function regenerateCode() {
-    setActionError(null);
-    setBusy(true);
-    try {
-      await api.post(`/environments/${environmentId}/invite-code`);
-      await refetch();
-    } catch (caught) {
-      setActionError(caught instanceof Error ? caught.message : 'Could not make a new code');
-    } finally {
-      setBusy(false);
-    }
-  }
 
   function confirmRemove(member: Member) {
     Alert.alert(
@@ -46,6 +51,7 @@ export function MembersScreen({ route, navigation }: Props) {
           text: 'Remove',
           style: 'destructive',
           onPress: async () => {
+            setActionError(null);
             try {
               await api.delete(`/environments/${environmentId}/members/${member.id}`);
               await refetch();
@@ -58,53 +64,7 @@ export function MembersScreen({ route, navigation }: Props) {
     );
   }
 
-  function confirmLeave() {
-    Alert.alert(
-      `Leave ${environment?.name}?`,
-      isOwner
-        ? 'The longest-standing housemate becomes the owner.'
-        : 'You can rejoin later with the invite code.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Leave',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.delete(`/environments/${environmentId}/members/${user?.id}`);
-              navigation.popToTop();
-            } catch (caught) {
-              setActionError(caught instanceof Error ? caught.message : 'Could not leave');
-            }
-          },
-        },
-      ],
-    );
-  }
-
-  function confirmDelete() {
-    Alert.alert(
-      `Delete ${environment?.name}?`,
-      'Every task and notification in this household goes with it. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.delete(`/environments/${environmentId}`);
-              navigation.popToTop();
-            } catch (caught) {
-              setActionError(caught instanceof Error ? caught.message : 'Could not delete it');
-            }
-          },
-        },
-      ],
-    );
-  }
-
-  if (loading && !environment) {
+  if (loading && !members) {
     return (
       <View style={styles.centred}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -112,80 +72,69 @@ export function MembersScreen({ route, navigation }: Props) {
     );
   }
 
+  const away = members?.filter((member) => member.holidayMode).length ?? 0;
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <ErrorBanner message={actionError ?? error} />
 
-      <Text style={styles.sectionTitle}>Invite code</Text>
-      <Card>
-        <Text style={styles.code}>{environment?.inviteCode}</Text>
-        <Text style={styles.codeHint}>
-          Share this so a housemate can join. It's not case-sensitive.
+      {away > 0 ? (
+        <Text style={styles.summary}>
+          {away} of {members?.length} {away === 1 ? 'is' : 'are'} away right now.
         </Text>
-        {isOwner ? (
-          <Button
-            label="Generate a new code"
-            variant="secondary"
-            onPress={regenerateCode}
-            loading={busy}
-            style={styles.codeButton}
-          />
-        ) : null}
-      </Card>
+      ) : null}
 
-      <Text style={styles.sectionTitle}>
-        Housemates {members ? `(${members.length})` : ''}
-      </Text>
-      {members?.map((member) => (
-        <Card key={member.id}>
-          <View style={styles.memberRow}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {member.displayName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
+      {members?.map((member) => {
+        const isYou = member.id === user?.id;
 
-            <View style={styles.memberDetail}>
-              <View style={styles.memberNameRow}>
-                <Text style={styles.memberName}>
-                  {member.id === user?.id ? 'You' : member.displayName}
-                </Text>
-                {member.role === 'owner' ? (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>Owner</Text>
+        return (
+          <Card key={member.id}>
+            <View style={styles.memberRow}>
+              {/* Dimmed rather than removed, so you can still tell who it is. */}
+              <View style={member.holidayMode ? styles.avatarAway : undefined}>
+                <Avatar
+                  userId={member.id}
+                  displayName={member.displayName}
+                  hasAvatar={member.hasAvatar}
+                  size={44}
+                />
+              </View>
+
+              <View style={styles.memberDetail}>
+                <View style={styles.memberNameRow}>
+                  <Text style={[styles.memberName, member.holidayMode && styles.nameAway]}>
+                    {isYou ? 'You' : member.displayName}
+                  </Text>
+                  {member.role === 'owner' ? (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>Owner</Text>
+                    </View>
+                  ) : null}
+                </View>
+
+                {member.holidayMode ? (
+                  <View style={styles.awayTag}>
+                    <Ionicons name="airplane" size={12} color={colors.warningText} />
+                    <Text style={styles.awayText}>
+                      {isYou ? "You're too busy enjoying life" : `${member.displayName} ${awayPhraseFor(member.id)}`}
+                    </Text>
                   </View>
+                ) : member.bio ? (
+                  <Text style={styles.bio} numberOfLines={2}>
+                    {member.bio}
+                  </Text>
                 ) : null}
               </View>
 
-              {member.holidayMode ? (
-                <Text style={styles.away}>Away — skipping their turn</Text>
-              ) : member.bio ? (
-                <Text style={styles.bio} numberOfLines={1}>
-                  {member.bio}
-                </Text>
+              {isOwner && !isYou ? (
+                <Pressable onPress={() => confirmRemove(member)} hitSlop={8}>
+                  <Ionicons name="close-circle-outline" size={22} color={colors.danger} />
+                </Pressable>
               ) : null}
             </View>
-
-            {isOwner && member.id !== user?.id ? (
-              <Pressable onPress={() => confirmRemove(member)} hitSlop={8}>
-                <Ionicons name="close-circle-outline" size={22} color={colors.danger} />
-              </Pressable>
-            ) : null}
-          </View>
-        </Card>
-      ))}
-
-      <View style={styles.danger}>
-        <Button label="Leave this household" variant="danger" onPress={confirmLeave} />
-        {isOwner ? (
-          <Button
-            label="Delete this household"
-            variant="danger"
-            onPress={confirmDelete}
-            style={styles.deleteButton}
-          />
-        ) : null}
-      </View>
+          </Card>
+        );
+      })}
     </ScrollView>
   );
 }
@@ -199,38 +148,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.background,
   },
-  sectionTitle: {
-    ...typography.label,
-    color: colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    fontSize: 12,
-    marginBottom: spacing.sm,
-    marginTop: spacing.lg,
-  },
-  code: {
-    fontSize: 30,
-    fontWeight: '700',
-    letterSpacing: 8,
-    color: colors.primary,
-    textAlign: 'center',
-  },
-  codeHint: { ...typography.caption, textAlign: 'center', marginTop: spacing.sm },
-  codeButton: { marginTop: spacing.lg },
+  summary: { ...typography.caption, marginBottom: spacing.md },
   memberRow: { flexDirection: 'row', alignItems: 'center' },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.successSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  avatarText: { fontSize: 17, fontWeight: '700', color: colors.primary },
-  memberDetail: { flex: 1 },
+  avatarAway: { opacity: 0.35, marginRight: spacing.md },
+  memberDetail: { flex: 1, marginLeft: spacing.md },
   memberNameRow: { flexDirection: 'row', alignItems: 'center' },
   memberName: { ...typography.body, fontWeight: '600' },
+  nameAway: { color: colors.textMuted },
   badge: {
     backgroundColor: colors.successSoft,
     paddingHorizontal: spacing.sm,
@@ -239,8 +163,17 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
   badgeText: { fontSize: 12, fontWeight: '600', color: colors.primary },
-  away: { ...typography.caption, color: colors.warningText, marginTop: 2 },
+  awayTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.warningSoft,
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
+    marginTop: spacing.xs,
+  },
+  awayText: { fontSize: 12, fontWeight: '600', color: colors.warningText },
   bio: { ...typography.caption, marginTop: 2 },
-  danger: { marginTop: spacing.xxl },
-  deleteButton: { marginTop: spacing.md },
 });

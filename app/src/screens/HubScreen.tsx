@@ -31,7 +31,7 @@ export function HubScreen({ route, navigation }: Props) {
             <Ionicons name="notifications-outline" size={22} color={colors.text} />
           </Pressable>
           <Pressable
-            onPress={() => navigation.navigate('Members', { environmentId })}
+            onPress={() => navigation.navigate('Settings', { environmentId })}
             hitSlop={8}
             style={styles.headerButton}
             accessibilityLabel="Household settings"

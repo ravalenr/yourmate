@@ -15,6 +15,7 @@ export type HomeStackParamList = {
   TaskDetail: { taskId: string; environmentId: string };
   TaskForm: { environmentId: string; taskId?: string };
   Members: { environmentId: string };
+  Settings: { environmentId: string };
   Notifications: { environmentId: string };
 };
 

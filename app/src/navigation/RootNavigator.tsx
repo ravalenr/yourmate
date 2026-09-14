@@ -15,6 +15,7 @@ import { ComingSoonScreen } from '../screens/ComingSoonScreen';
 import { TaskDetailScreen } from '../screens/TaskDetailScreen';
 import { TaskFormScreen } from '../screens/TaskFormScreen';
 import { MembersScreen } from '../screens/MembersScreen';
+import { HouseholdSettingsScreen } from '../screens/HouseholdSettingsScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { colors } from '../theme';
@@ -76,6 +77,11 @@ function HomeFlow() {
       <HomeStack.Screen
         name="Members"
         component={MembersScreen}
+        options={{ title: 'Housemates' }}
+      />
+      <HomeStack.Screen
+        name="Settings"
+        component={HouseholdSettingsScreen}
         options={{ title: 'Household settings' }}
       />
       <HomeStack.Screen
