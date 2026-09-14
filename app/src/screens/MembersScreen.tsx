@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import type { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { api } from '../api/client';
 import { Avatar } from '../components/Avatar';
@@ -41,12 +43,13 @@ export function MembersScreen({ route }: Props) {
 
   const isOwner = environment?.role === 'owner';
 
-  function confirmRemove(member: Member) {
+  function confirmRemove(member: Member, swipe: SwipeableMethods) {
     Alert.alert(
       `Remove ${member.displayName}?`,
       'They will lose access to this household, and any task assigned to them becomes unassigned.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        // Closing on cancel matters: the row is left open behind the alert.
+        { text: 'Cancel', style: 'cancel', onPress: () => swipe.close() },
         {
           text: 'Remove',
           style: 'destructive',
@@ -56,6 +59,7 @@ export function MembersScreen({ route }: Props) {
               await api.delete(`/environments/${environmentId}/members/${member.id}`);
               await refetch();
             } catch (caught) {
+              swipe.close();
               setActionError(caught instanceof Error ? caught.message : 'Could not remove them');
             }
           },
@@ -87,8 +91,8 @@ export function MembersScreen({ route }: Props) {
       {members?.map((member) => {
         const isYou = member.id === user?.id;
 
-        return (
-          <Card key={member.id}>
+        const row = (
+          <Card style={styles.card}>
             <View style={styles.memberRow}>
               {/* Dimmed rather than removed, so you can still tell who it is. */}
               <View style={member.holidayMode ? styles.avatarAway : undefined}>
@@ -116,7 +120,9 @@ export function MembersScreen({ route }: Props) {
                   <View style={styles.awayTag}>
                     <Ionicons name="airplane" size={12} color={colors.warningText} />
                     <Text style={styles.awayText}>
-                      {isYou ? "You're too busy enjoying life" : `${member.displayName} ${awayPhraseFor(member.id)}`}
+                      {isYou
+                        ? "You're too busy enjoying life"
+                        : `${member.displayName} ${awayPhraseFor(member.id)}`}
                     </Text>
                   </View>
                 ) : member.bio ? (
@@ -125,16 +131,42 @@ export function MembersScreen({ route }: Props) {
                   </Text>
                 ) : null}
               </View>
-
-              {isOwner && !isYou ? (
-                <Pressable onPress={() => confirmRemove(member)} hitSlop={8}>
-                  <Ionicons name="close-circle-outline" size={22} color={colors.danger} />
-                </Pressable>
-              ) : null}
             </View>
           </Card>
         );
+
+        // Only an owner can remove someone, and never themselves — everyone else
+        // gets a plain row with nothing to swipe.
+        if (!isOwner || isYou) {
+          return <View key={member.id}>{row}</View>;
+        }
+
+        return (
+          <Swipeable
+            key={member.id}
+            containerStyle={styles.swipeContainer}
+            friction={2}
+            leftThreshold={40}
+            renderLeftActions={(_progress, _translation, swipe) => (
+              <Pressable
+                onPress={() => confirmRemove(member, swipe)}
+                style={styles.removeAction}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${member.displayName}`}
+              >
+                <Ionicons name="person-remove-outline" size={20} color={colors.primaryText} />
+                <Text style={styles.removeLabel}>Remove</Text>
+              </Pressable>
+            )}
+          >
+            {row}
+          </Swipeable>
+        );
       })}
+
+      {isOwner && (members?.length ?? 0) > 1 ? (
+        <Text style={styles.hint}>Swipe a housemate to the right to remove them.</Text>
+      ) : null}
     </ScrollView>
   );
 }
@@ -149,8 +181,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   summary: { ...typography.caption, marginBottom: spacing.md },
+  // The card carries its own spacing normally; inside a Swipeable the container
+  // owns it instead, so the red panel lines up with the card rather than the gap.
+  swipeContainer: {
+    marginBottom: spacing.md,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+  },
+  card: { marginBottom: 0 },
+  removeAction: {
+    backgroundColor: colors.danger,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 96,
+    gap: 2,
+  },
+  removeLabel: { color: colors.primaryText, fontSize: 12, fontWeight: '600' },
   memberRow: { flexDirection: 'row', alignItems: 'center' },
-  avatarAway: { opacity: 0.35, marginRight: spacing.md },
+  avatarAway: { opacity: 0.35 },
   memberDetail: { flex: 1, marginLeft: spacing.md },
   memberNameRow: { flexDirection: 'row', alignItems: 'center' },
   memberName: { ...typography.body, fontWeight: '600' },
@@ -176,4 +224,5 @@ const styles = StyleSheet.create({
   },
   awayText: { fontSize: 12, fontWeight: '600', color: colors.warningText },
   bio: { ...typography.caption, marginTop: 2 },
+  hint: { ...typography.caption, textAlign: 'center', marginTop: spacing.md },
 });
